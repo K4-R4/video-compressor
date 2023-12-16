@@ -1,3 +1,4 @@
+import os.path
 import socket
 import struct
 import threading
@@ -7,6 +8,7 @@ class Server:
     buffer_size = 1400
     header_size = 32
     response_size = 16
+    dest_dir = './dest/'
 
     def __init__(self, host: str, port: int):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -59,7 +61,12 @@ class Server:
     @staticmethod
     def receive_body(client: socket.socket, file_size: int):
         # クライアントから送られたデータをファイルに保存する
-        with open('dest/dest.mp4', 'wb') as f:
+        parent_dir = os.path.dirname(Server.dest_dir)
+        if not os.path.exists(parent_dir):
+            os.mkdir(parent_dir)
+        print(f'File will be saved to {parent_dir}')
+        address, port = client.getsockname()
+        with open(f'{parent_dir}/{address}_{port}.mp4', 'wb') as f:
             try:
                 while file_size > 0:
                     data = client.recv(Server.buffer_size)
