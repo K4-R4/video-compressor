@@ -1,3 +1,4 @@
+import ffmpeg
 import os.path
 import socket
 import struct
@@ -5,10 +6,10 @@ import threading
 
 
 class Server:
-    buffer_size = 1400
-    header_size = 32
-    response_size = 16
-    dest_dir = './dest/'
+    BUFFER_SIZE = 1400
+    HEADER_SIZE = 32
+    RESPONSE_SIZE = 16
+    DEST_DIR = './dest/'
 
     def __init__(self, host: str, port: int):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,7 +62,7 @@ class Server:
     @staticmethod
     def receive_body(client: socket.socket, file_size: int):
         # クライアントから送られたデータをファイルに保存する
-        parent_dir = os.path.dirname(Server.dest_dir)
+        parent_dir = os.path.dirname(Server.DEST_DIR)
         if not os.path.exists(parent_dir):
             os.mkdir(parent_dir)
         print(f'File will be saved to {parent_dir}')
@@ -69,7 +70,7 @@ class Server:
         with open(f'{parent_dir}/{address}_{port}.mp4', 'wb') as f:
             try:
                 while file_size > 0:
-                    data = client.recv(Server.buffer_size)
+                    data = client.recv(Server.BUFFER_SIZE)
                     file_size -= len(data)
                 # 受信が終わったらクライアントに終了を通知する
                 print('File has been received!')
@@ -86,6 +87,23 @@ class Server:
         # クライアントにデータを送信する
         packed_data = struct.pack('16s', data.to_bytes(16, 'big'))
         client.send(packed_data)
+
+
+class VideoProcessor:
+    COMPRESS = "compress"
+    RESOLUTION = "resolution"
+    ASPECT = "aspect"
+    AUDIO = "audio"
+    GIF = "gif"
+
+    def __init__(self, file_name: str):
+        self.file_name = file_name
+        self.video = ffmpeg.input(file_name)
+        self.audio = ffmpeg.input(file_name)
+        self.output = ffmpeg.output(self.video, self.audio, 'output.mp4')
+
+    def run(self):
+        ffmpeg.run(self.output)
 
 
 def main():

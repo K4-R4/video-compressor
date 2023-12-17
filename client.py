@@ -13,10 +13,10 @@ class FileValidator:
 
 
 class Client:
-    buffer_size = 1400
-    max_file_size = 2 ** 32
-    header_size = 32
-    response_size = 16
+    BUFFER_SIZE = 1400
+    MAX_FILE_SIZE = 2 ** 32
+    HEADER_SIZE = 32
+    RESPONSE_SIZE = 16
 
     def __init__(self, host: str, port: int):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -37,7 +37,7 @@ class Client:
     def send_header(self, file_name: str):
         file_size = os.path.getsize(file_name)
         print(f'File size: {file_size}')
-        if file_size > Client.max_file_size:
+        if file_size > Client.MAX_FILE_SIZE:
             print('File size is too large!')
             self.sock.close()
             return
@@ -50,7 +50,7 @@ class Client:
             try:
                 # self.buffer_size分ずつファイルを読み込んで送信する
                 while True:
-                    data = f.read(self.buffer_size)
+                    data = f.read(self.BUFFER_SIZE)
                     if data:
                         self.sock.send(data)
                     else:
@@ -64,7 +64,7 @@ class Client:
 
     def receive_status(self) -> int:
         # サーバーからのレスポンスを受け取る
-        data = self.sock.recv(Client.response_size)
+        data = self.sock.recv(Client.RESPONSE_SIZE)
         status_code_bytes, = struct.unpack('16s', data)
         return int.from_bytes(status_code_bytes, 'big')
 
