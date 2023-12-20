@@ -91,19 +91,48 @@ class Server:
 
 class VideoProcessor:
     COMPRESS = "compress"
-    RESOLUTION = "resolution"
-    ASPECT = "aspect"
-    AUDIO = "audio"
-    GIF = "gif"
+    RESOLUTION = "resolutionChange"
+    ASPECT = "aspectChange"
+    AUDIO = "audioExtract"
+    GIF = "gifConvert"
 
-    def __init__(self, file_name: str):
-        self.file_name = file_name
-        self.video = ffmpeg.input(file_name)
-        self.audio = ffmpeg.input(file_name)
-        self.output = ffmpeg.output(self.video, self.audio, 'output.mp4')
+    @staticmethod
+    def compress(input_file: str, output_file: str, compression_rate: float):
+        probe = ffmpeg.probe(input_file)
+        video_info = next(s for s in probe["streams"] if s["codec_type"] == "video")
+        default_bitrate: int = int(video_info["bit_rate"])
+        compressed_bitrate: int = int(default_bitrate * compression_rate)
+        stream = ffmpeg.input(input_file).output(
+            output_file, video_bitrate=compressed_bitrate
+        )
+        ffmpeg.run(stream, overwrite_output=True)
 
-    def run(self):
-        ffmpeg.run(self.output)
+    @staticmethod
+    def change_resolution(input_file: str, output_file: str, width: int, height: int):
+        stream = ffmpeg.input(input_file)
+        video = stream.filter("scale", width, height)
+        audio = stream.audio
+        ffmpeg.output(video, audio, output_file).run(overwrite_output=True)
+
+    @staticmethod
+    def change_aspect_ratio(input_file: str, output_file: str, aspect_ratio: str):
+        input_stream = ffmpeg.input(input_file)
+        video = input_stream.filter("setdar", aspect_ratio)
+        audio = input_stream.audio
+        ffmpeg.output(video, audio, output_file).run(overwrite_output=True)
+
+    @staticmethod
+    def change_audio(input_file: str, output_file: str):
+        ffmpeg.input(input_file).output(output_file, format="mp3").run(overwrite_output=True)
+
+    @staticmethod
+    def convert_to_gif(input_file: str, output_file: str, start_sec: int, end_sec: int):
+        stream = ffmpeg.input(input_file)
+        video = stream.trim(start=start_sec, end=end_sec).setpts("PTS-STARTPTS")
+        audio = stream.filter("atrim", start=start_sec, end=end_sec).filter(
+            "asetpts", "PTS-STARTPTS"
+        )
+        ffmpeg.output(video, audio, output_file, format="gif").run()
 
 
 def main():

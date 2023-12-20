@@ -35,13 +35,29 @@ payload: arbitrary bytes
 - medit type size: 1 ~ 4 bytes (mp4, mp3, json, avi, ...)
 - payload size: 2^47 bytes at most
 
-JSON format
+Request
 ```json
 {
-  "operation": "compress", // compress, resolution, aspect, audio, gif
-  "range": {
-    "start": 0,
-    "duration": 0
+  // compress, resolutionChange, aspectRatioChange, audioExtract, gifConvert
+  "operation": "compress",
+  "params": {
+    // required for compress
+    "bitrate": "1000k",
+    // required for aspectRatioChange
+    "aspect_ratio": "16:9",
+    // required for resolutionChange 
+    "resolution": "1280x720",
+    // required for gifConvert
+    "start_sec": "12",
+    "end_sec": "25"
   }
+}
+```
+
+Response
+```json
+{
+  "status": 200,
+  "message": "OK"
 }
 ```
