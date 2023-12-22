@@ -2,3 +2,4 @@
 client/dest
 venv
 *.mp4
+.env

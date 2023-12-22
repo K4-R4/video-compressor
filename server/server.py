@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 import ffmpeg
 import json
 import logging
@@ -217,8 +218,11 @@ class VideoProcessor:
 
 
 def main():
+    load_dotenv()
+    server_ip = os.getenv('SERVER_IP')
+    server_port = os.getenv('SERVER_PORT')
     logging.basicConfig(level=logging.INFO)
-    server = Server('localhost', 5000)
+    server = Server(server_ip, int(server_port))
     server.run()
 
 

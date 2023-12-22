@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 import json
 import logging
 import os.path
@@ -114,8 +115,11 @@ class Client:
 
 
 def main():
+    load_dotenv()
+    server_ip = os.getenv('SERVER_IP')
+    server_port = os.getenv('SERVER_PORT')
     logging.basicConfig(level=logging.INFO)
-    client = Client('localhost', 5000)
+    client = Client(server_ip, int(server_port))
     # 引数にファイル名を指定する
     if len(sys.argv) != 2:
         print('Usage: python client.py [file_name]')
