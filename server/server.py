@@ -7,7 +7,6 @@ import struct
 import threading
 
 
-# TODO replace file_name with file_path
 class Server:
     BUFFER_SIZE = 1400
     HEADER_SIZE = 64
@@ -45,22 +44,25 @@ class Server:
     @staticmethod
     def listen_to_client(client: socket.socket):
         try:
+            # ヘッダーを受信する
             json_size, media_type_size, payload_size = Server.receive_header(client)
             logging.info(f'json_size: {json_size}, media_type_size: {media_type_size}, payload_size: {payload_size}')
             request, input_file = Server.receive_body(client, json_size, media_type_size, payload_size)
             logging.info(f'Request: {request}, file_name: {input_file}')
             logging.info('Processing...')
-            output_file = VideoProcessor.process(request, input_file)
-            logging.info(f'Deleting files: {input_file} {output_file}')
+            # ファイルのパスを取得する
+            input_file_path = os.path.join(Server.DEST_DIR, input_file)
+            output_file_path = os.path.join(Server.DEST_DIR, f'processed_{input_file}')
+            # ファイルを処理する
+            media_type = VideoProcessor.process(request, input_file_path, output_file_path)
             # レスポンスを送信する
             response = dict(status=200, message='OK')
-            # TODO メディアタイプを動的に変更する
-            media_type = "mp4"
-            Server.send_header(client, Server.get_video_file_path(output_file), media_type, response)
-            Server.send_body(client, Server.get_video_file_path(output_file), media_type, response)
+            Server.send_header(client, output_file_path, media_type, response)
+            Server.send_body(client, output_file_path, media_type, response)
             # ファイルを削除する
-            os.remove(Server.get_video_file_path(input_file))
-            os.remove(Server.get_video_file_path(output_file))
+            logging.info(f'Deleting files: {input_file_path} {output_file_path}')
+            os.remove(input_file_path)
+            os.remove(output_file_path)
         except Exception as e:
             logging.error(e, exc_info=True)
             response = dict(status=500, message=str(e))
@@ -92,7 +94,7 @@ class Server:
         # ファイルを受信する
         address, port = client.getsockname()
         file_name = f'{address}_{port}.' + media_type
-        file_path = Server.get_video_file_path(file_name)
+        file_path = os.path.join(Server.DEST_DIR, file_name)
         logging.info(f'Saving file to {file_path}')
         with open(file_path, 'wb') as f:
             while payload_size > 0:
@@ -137,10 +139,6 @@ class Server:
             except socket.error:
                 client.close()
 
-    @staticmethod
-    def get_video_file_path(file_name: str) -> str:
-        return f'{Server.DEST_DIR}/{file_name}'
-
 
 class VideoProcessor:
     COMPRESS = "compress"
@@ -150,39 +148,27 @@ class VideoProcessor:
     GIF = "gifConvert"
 
     @staticmethod
-    def process(request: dict, input_file: str) -> str:
+    # 変換後の拡張子を返す
+    def process(request: dict, input_file_path: str, output_file_path: str) -> str:
         if request['operation'] == VideoProcessor.COMPRESS:
-            output_file = f'{input_file}_compressed.mp4'
-            input_file_path = Server.get_video_file_path(input_file)
-            output_file_path = Server.get_video_file_path(output_file)
             VideoProcessor.compress(input_file_path, output_file_path, request['params']['compressRate'])
-            return output_file
+            return 'mp4'
         elif request['operation'] == VideoProcessor.RESOLUTION:
-            output_file = f'{input_file}_resolution_changed.mp4'
-            input_file_path = Server.get_video_file_path(input_file)
-            output_file_path = Server.get_video_file_path(output_file)
             VideoProcessor.change_resolution(input_file_path, output_file_path, request['params']['width'],
                                              request['params']['height'])
-            return output_file
+            return 'mp4'
         elif request['operation'] == VideoProcessor.ASPECT:
-            output_file = f'{input_file}_aspect_changed.mp4'
-            input_file_path = Server.get_video_file_path(input_file)
-            output_file_path = Server.get_video_file_path(output_file)
             VideoProcessor.change_aspect_ratio(input_file_path, output_file_path, request['params']['aspectRatio'])
-            return output_file
+            return 'mp4'
         elif request['operation'] == VideoProcessor.AUDIO:
-            output_file = f'{input_file}_audio_extracted.mp3'
-            input_file_path = Server.get_video_file_path(input_file)
-            output_file_path = Server.get_video_file_path(output_file)
+            output_file_path = output_file_path.replace('.mp4', '.mp3')
             VideoProcessor.change_audio(input_file_path, output_file_path)
-            return output_file
+            return 'mp3'
         elif request['operation'] == VideoProcessor.GIF:
-            output_file = f'{input_file}_gif.gif'
-            input_file_path = Server.get_video_file_path(input_file)
-            output_file_path = Server.get_video_file_path(output_file)
+            output_file_path = output_file_path.replace('.mp4', '.gif')
             VideoProcessor.convert_to_gif(input_file_path, output_file_path, request['params']['startSec'],
                                           request['params']['endSec'])
-            return output_file
+            return 'gif'
         else:
             raise Exception(f'Unknown request type: {request["type"]}')
 
