@@ -12,7 +12,7 @@ class Server:
     HEADER_SIZE = 64
     HEADER_FORMAT = '16s1s47s'
     RESPONSE_SIZE = 16
-    DEST_DIR = './dest/'
+    DEST_DIR = './dest'
 
     def __init__(self, host: str, port: int):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -50,10 +50,10 @@ class Server:
             logging.info(f'Request: {request}, file_name: {input_file}')
             logging.info('Processing...')
             output_file = VideoProcessor.process(request, input_file)
-            logging.info(f'Delital file: {input_file} {output_file}')
+            logging.info(f'Deleting files: {input_file} {output_file}')
             # ファイルを削除する
-            os.remove(input_file)
-            os.remove(output_file)
+            os.remove(Server.get_video_file_path(input_file))
+            os.remove(Server.get_video_file_path(output_file))
         except Exception as e:
             logging.error(e, exc_info=True)
             Server.respond(client, dict(status=500, message=str(e)))
@@ -82,13 +82,11 @@ class Server:
         media_type = media_type_bytes.decode('utf-8')
 
         # ファイルを受信する
-        parent_dir = os.path.dirname(Server.DEST_DIR)
-        if not os.path.exists(parent_dir):
-            os.mkdir(parent_dir)
-        logging.info(f'File will be saved to {parent_dir}')
         address, port = client.getsockname()
-        file_name = f'{parent_dir}/{address}_{port}.' + media_type
-        with open(file_name, 'wb') as f:
+        file_name = f'{address}_{port}.' + media_type
+        file_path = Server.get_video_file_path(file_name)
+        logging.info(f'Saving file to {file_path}')
+        with open(file_path, 'wb') as f:
             while payload_size > 0:
                 data = client.recv(Server.BUFFER_SIZE)
                 f.write(data)
@@ -114,6 +112,10 @@ class Server:
         response_bytes = bytes(json.dumps(response), 'utf-8')
         client.send(response_bytes)
 
+    @staticmethod
+    def get_video_file_path(file_name: str) -> str:
+        return f'{Server.DEST_DIR}/{file_name}'
+
 
 class VideoProcessor:
     COMPRESS = "compress"
@@ -125,25 +127,35 @@ class VideoProcessor:
     @staticmethod
     def process(request: dict, input_file: str) -> str:
         if request['operation'] == VideoProcessor.COMPRESS:
-            output_file = f'compress_{input_file}'
-            VideoProcessor.compress(input_file, output_file, request['params']['compressRate'])
+            output_file = f'{input_file}_compressed.mp4'
+            input_file_path = Server.get_video_file_path(input_file)
+            output_file_path = Server.get_video_file_path(output_file)
+            VideoProcessor.compress(input_file_path, output_file_path, request['params']['compressRate'])
             return output_file
         elif request['operation'] == VideoProcessor.RESOLUTION:
-            output_file = f'resolution_{input_file}'
-            VideoProcessor.change_resolution(input_file, output_file, request['params']['width'],
+            output_file = f'{input_file}_resolution_changed.mp4'
+            input_file_path = Server.get_video_file_path(input_file)
+            output_file_path = Server.get_video_file_path(output_file)
+            VideoProcessor.change_resolution(input_file_path, output_file_path, request['params']['width'],
                                              request['params']['height'])
             return output_file
         elif request['operation'] == VideoProcessor.ASPECT:
-            output_file = f'aspect_{input_file}'
-            VideoProcessor.change_aspect_ratio(input_file, output_file, request['params']['aspectRatio'])
+            output_file = f'{input_file}_aspect_changed.mp4'
+            input_file_path = Server.get_video_file_path(input_file)
+            output_file_path = Server.get_video_file_path(output_file)
+            VideoProcessor.change_aspect_ratio(input_file_path, output_file_path, request['params']['aspectRatio'])
             return output_file
         elif request['operation'] == VideoProcessor.AUDIO:
-            output_file = f'audio_{input_file}'
-            VideoProcessor.change_audio(input_file, output_file)
+            output_file = f'{input_file}_audio_extracted.mp3'
+            input_file_path = Server.get_video_file_path(input_file)
+            output_file_path = Server.get_video_file_path(output_file)
+            VideoProcessor.change_audio(input_file_path, output_file_path)
             return output_file
         elif request['operation'] == VideoProcessor.GIF:
-            output_file = f'gif_{input_file}'
-            VideoProcessor.convert_to_gif(input_file, output_file, request['params']['startSec'],
+            output_file = f'{input_file}_gif.gif'
+            input_file_path = Server.get_video_file_path(input_file)
+            output_file_path = Server.get_video_file_path(output_file)
+            VideoProcessor.convert_to_gif(input_file_path, output_file_path, request['params']['startSec'],
                                           request['params']['endSec'])
             return output_file
         else:
@@ -152,7 +164,7 @@ class VideoProcessor:
     @staticmethod
     def compress(input_file: str, output_file: str, compression_rate: float):
         logging.info(f'Compressing {input_file} to {output_file} with compression rate {compression_rate}')
-        probe = ffmpeg.probe(input_file)
+        probe = ffmpeg.probe(input_file, cmd="ffprobe")
         video_info = next(s for s in probe["streams"] if s["codec_type"] == "video")
         default_bitrate: int = int(video_info["bit_rate"])
         compressed_bitrate: int = int(default_bitrate * compression_rate)
