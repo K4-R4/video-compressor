@@ -54,12 +54,12 @@ Request
     // required for compress
     "bitrate": "1000k",
     // required for aspectRatioChange
-    "aspect_ratio": "16:9",
+    "aspectRatio": "16:9",
     // required for resolutionChange 
     "resolution": "1280x720",
     // required for gifConvert
-    "start_sec": "12",
-    "end_sec": "25"
+    "startSec": "12",
+    "endSec": "25"
   }
 }
 ```

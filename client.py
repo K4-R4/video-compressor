@@ -5,6 +5,7 @@ import socket
 import struct
 import sys
 
+
 class FileValidator:
     @staticmethod
     def is_mp4(file_name):
@@ -32,7 +33,7 @@ class Client:
         request = {
             "operation": "compress",
             "params": {
-                "compress_rate": 0.5
+                "compressRate": 0.5
             }
         }
         media_type = "mp4"
