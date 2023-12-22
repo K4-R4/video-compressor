@@ -21,16 +21,13 @@
 ```bash
 $ git clone https://github.com/tkuramot/video-compressor
 $ cd video-compressor
-$ brew install ffmpeg
-$ python3 -m venv venv
-$ source venv/bin/activate
-$ pip install -r requirements.txt
+$ make init
 ```
 
 ## [Usage](#usage)
 ```bash
-$ python3 server.py
-$ python3 client.py
+$ make server
+$ make client
 ```
 
 ## [Demo](#demo)
