@@ -22,6 +22,8 @@
 $ git clone https://github.com/tkuramot/video-compressor
 $ cd video-compressor
 $ brew install ffmpeg
+$ python3 -m venv venv
+$ source venv/bin/activate
 $ pip install -r requirements.txt
 ```
 
@@ -34,7 +36,7 @@ $ python3 client.py
 ## [Demo](#demo)
 
 ## [Technical details](#technical-details)
-### Client-Server protocol
+###  protocol
 header: 64 bytes
 - JSON size: 16 bytes
 - media type size: 1 byte

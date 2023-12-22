@@ -1,4 +1,4 @@
 .idea
-dest
+client/dest
 venv
 *.mp4

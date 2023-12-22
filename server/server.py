@@ -7,6 +7,7 @@ import struct
 import threading
 
 
+# TODO replace file_name with file_path
 class Server:
     BUFFER_SIZE = 1400
     HEADER_SIZE = 64
@@ -51,13 +52,20 @@ class Server:
             logging.info('Processing...')
             output_file = VideoProcessor.process(request, input_file)
             logging.info(f'Deleting files: {input_file} {output_file}')
+            # レスポンスを送信する
+            response = dict(status=200, message='OK')
+            # TODO メディアタイプを動的に変更する
+            media_type = "mp4"
+            Server.send_header(client, Server.get_video_file_path(output_file), media_type, response)
+            Server.send_body(client, Server.get_video_file_path(output_file), media_type, response)
             # ファイルを削除する
             os.remove(Server.get_video_file_path(input_file))
             os.remove(Server.get_video_file_path(output_file))
         except Exception as e:
             logging.error(e, exc_info=True)
-            Server.respond(client, dict(status=500, message=str(e)))
-        Server.respond(client, dict(status=200, message='OK'))
+            response = dict(status=500, message=str(e))
+            Server.send_header(client, '', '', response)
+            Server.send_body(client, '', '', response)
 
     @staticmethod
     def receive_header(client: socket.socket) -> tuple[int, int, int]:
@@ -96,21 +104,38 @@ class Server:
         return request, file_name
 
     @staticmethod
-    def send_header(client: socket.socket, response: dict):
-        request_size = len(bytes(json.dumps(response), 'utf-8'))
+    def send_header(client: socket.socket, file_path: str, media_type: str, request: dict):
+        request_size = len(bytes(json.dumps(request), 'utf-8'))
+        media_type_size = len(bytes(media_type, 'utf-8'))
+        payload_size = os.path.getsize(file_path)
+        logging.info(f'json_size: {request_size}, media_type_size: {media_type_size}, payload_size: {payload_size}')
         packed_header = struct.pack(Server.HEADER_FORMAT,
                                     int.to_bytes(request_size, 16, 'big'),
-                                    int.to_bytes(0, 1, 'big'),
-                                    int.to_bytes(0, 47, 'big'))
+                                    int.to_bytes(media_type_size, 1, 'big'),
+                                    int.to_bytes(payload_size, 47, 'big'))
         client.send(packed_header)
 
     @staticmethod
-    def respond(client: socket.socket, response: dict):
-        # データのサイズを送信する
-        Server.send_header(client, response)
-        # クライアントにデータを送信する
-        response_bytes = bytes(json.dumps(response), 'utf-8')
-        client.send(response_bytes)
+    def send_body(client: socket.socket, file_path: str, media_type: str, request: dict):
+        # jsonを送信する
+        json_data = json.dumps(request)
+        client.send(bytes(json_data, 'utf-8'))
+        # media_typeを送信する
+        client.send(bytes(media_type, 'utf-8'))
+        # ファイルを読み込んで送信する
+        with open(file_path, 'rb') as f:
+            try:
+                # self.buffer_size分ずつファイルを読み込んで送信する
+                while True:
+                    data = f.read(Server.BUFFER_SIZE)
+                    if data:
+                        client.send(data)
+                    else:
+                        logging.info('File has been sent!')
+                        break
+            # socketが例外を発生させたら接続を切る
+            except socket.error:
+                client.close()
 
     @staticmethod
     def get_video_file_path(file_name: str) -> str:
