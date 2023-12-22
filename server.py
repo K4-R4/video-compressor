@@ -1,4 +1,5 @@
 import ffmpeg
+import json
 import os.path
 import socket
 import struct
@@ -7,7 +8,8 @@ import threading
 
 class Server:
     BUFFER_SIZE = 1400
-    HEADER_SIZE = 32
+    HEADER_SIZE = 64
+    HEADER_FORMAT = '16s1s47s'
     RESPONSE_SIZE = 16
     DEST_DIR = './dest/'
 
@@ -40,53 +42,78 @@ class Server:
     # クライアントからのメッセージを待ち受ける
     @staticmethod
     def listen_to_client(client: socket.socket, address: tuple):
-        file_size = Server.receive_header(client)
-        if file_size == 0:
+        json_size, media_type_size, payload_size = Server.receive_header(client)
+        print(f'json_size: {json_size}, media_type_size: {media_type_size}, payload_size: {payload_size}')
+        if json_size == 0 and media_type_size == 0 and payload_size == 0:
+            # TODO Error response
             return
-        Server.receive_body(client, file_size)
+        request, file_name = Server.receive_body(client, json_size, media_type_size, payload_size)
+        print(f'Request: {request}, file_name: {file_name}')
+        if len(request) == 0 or len(file_name) == 0:
+            # TODO Error response
+            return
+        # TODO Process video
+        Server.respond(client, dict(status=200, message='OK'))
 
     @staticmethod
-    def receive_header(client: socket.socket) -> int:
-        # 32バイトのヘッダーを受信する
-        header = client.recv(32)
+    def receive_header(client: socket.socket) -> tuple[int, int, int]:
+        header = client.recv(Server.HEADER_SIZE)
         try:
-            file_size_bytes, = struct.unpack('32s', header)
-            file_size = int.from_bytes(file_size_bytes, 'big')
-            print('File size: ', file_size)
-            return file_size
+            json_size_bytes, media_type_size_bytes, payload_size_bytes = struct.unpack(Server.HEADER_FORMAT, header)
+            json_size = int.from_bytes(json_size_bytes, 'big')
+            media_type_size = int.from_bytes(media_type_size_bytes, 'big')
+            payload_size = int.from_bytes(payload_size_bytes, 'big')
+            return json_size, media_type_size, payload_size
         except struct.error as e:
             print(e)
             client.close()
-            return 0
+            return 0, 0, 0
 
     @staticmethod
-    def receive_body(client: socket.socket, file_size: int):
-        # クライアントから送られたデータをファイルに保存する
+    def receive_body(client: socket.socket, json_size: int, media_type_size: int, payload_size: int) -> tuple[
+            dict, str,]:
+        # jsonを受信する
+        request_bytes = client.recv(json_size)
+        request_string = request_bytes.decode('utf-8')
+        # dictに変換する
+        request = json.loads(request_string)
+
+        # メディアタイプを受信する
+        media_type_bytes = client.recv(media_type_size)
+        media_type = media_type_bytes.decode('utf-8')
+
+        # ファイルを受信する
         parent_dir = os.path.dirname(Server.DEST_DIR)
         if not os.path.exists(parent_dir):
             os.mkdir(parent_dir)
         print(f'File will be saved to {parent_dir}')
         address, port = client.getsockname()
-        with open(f'{parent_dir}/{address}_{port}.mp4', 'wb') as f:
-            try:
-                while file_size > 0:
-                    data = client.recv(Server.BUFFER_SIZE)
-                    file_size -= len(data)
-                # 受信が終わったらクライアントに終了を通知する
-                print('File has been received!')
-                Server.respond(client, 200)
-                client.close()
-            # socketが例外を発生させたら接続を切る
-            except socket.error as e:
-                print(e)
-                client.close()
-                return
+        file_name = f'{parent_dir}/{address}_{port}.' + media_type
+        with open(file_name, 'wb') as f:
+            while payload_size > 0:
+                data = client.recv(Server.BUFFER_SIZE)
+                f.write(data)
+                payload_size -= len(data)
+            # 受信が終わったらクライアントに終了を通知する
+            print('File has been received!')
+        return request, file_name
 
     @staticmethod
-    def respond(client: socket.socket, data: int):
+    def send_header(client: socket.socket, response: dict):
+        request_size = len(bytes(json.dumps(response), 'utf-8'))
+        packed_header = struct.pack(Server.HEADER_FORMAT,
+                                    int.to_bytes(request_size, 16, 'big'),
+                                    int.to_bytes(0, 1, 'big'),
+                                    int.to_bytes(0, 47, 'big'))
+        client.send(packed_header)
+
+    @staticmethod
+    def respond(client: socket.socket, response: dict):
+        # データのサイズを送信する
+        Server.send_header(client, response)
         # クライアントにデータを送信する
-        packed_data = struct.pack('16s', data.to_bytes(16, 'big'))
-        client.send(packed_data)
+        response_bytes = bytes(json.dumps(response), 'utf-8')
+        client.send(response_bytes)
 
 
 class VideoProcessor:

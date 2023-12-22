@@ -18,8 +18,18 @@
 5. 指定した時間範囲でGIFに変換
 
 ## [Installation](#installation)
+```bash
+$ git clone https://github.com/tkuramot/video-compressor
+$ cd video-compressor
+$ brew install ffmpeg
+$ pip install -r requirements.txt
+```
 
 ## [Usage](#usage)
+```bash
+$ python3 server.py
+$ python3 client.py
+```
 
 ## [Demo](#demo)
 
