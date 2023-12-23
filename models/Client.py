@@ -26,9 +26,9 @@ class Client(TCPConnection):
             }
         }
         media_type = "mp4"
-        Client.send_header(self.sock, file_name, media_type, request)
-        Client.send_body(self.sock, file_name, media_type, request)
+        Client.send_header(self.sock, media_type, request, file_name)
+        Client.send_body(self.sock, media_type, request, file_name)
         logging.info('Waiting for response...')
-        json_size, media_type_size, payload_size = Client.receive_header(self.sock)
-        logging.info(f'json_size: {json_size}, media_type_size: {media_type_size}, payload_size: {payload_size}')
-        Client.receive_body(self.sock, json_size, media_type_size, payload_size)
+        request_size, media_type_size, payload_size = Client.receive_header(self.sock)
+        logging.info(f'request_size: {request_size}, media_type_size: {media_type_size}, payload_size: {payload_size}')
+        Client.receive_body(self.sock, request_size, media_type_size, payload_size)

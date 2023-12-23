@@ -28,7 +28,7 @@ class TCPConnection(metaclass=ABCMeta):
         raise NotImplementedError
 
     @staticmethod
-    def send_header(sock: socket.socket, file_path: str, media_type: str, request: dict):
+    def send_header(sock: socket.socket, media_type: str, request: dict, file_path: str):
         """
         ヘッダーを送信する
 
@@ -41,7 +41,7 @@ class TCPConnection(metaclass=ABCMeta):
         request_size = len(bytes(json.dumps(request), 'utf-8'))
         media_type_size = len(bytes(media_type, 'utf-8')) if media_type else 0
         payload_size = os.path.getsize(file_path) if file_path else 0
-        logging.info(f'json_size: {request_size}, media_type_size: {media_type_size}, payload_size: {payload_size}')
+        logging.info(f'request_size: {request_size}, media_type_size: {media_type_size}, payload_size: {payload_size}')
         packed_header = struct.pack(TCPConnection.HEADER_FORMAT,
                                     int.to_bytes(request_size, TCPConnection.REQUEST_SIZE, 'big'),
                                     int.to_bytes(media_type_size, TCPConnection.MEDIA_TYPE_SIZE, 'big'),
@@ -49,7 +49,7 @@ class TCPConnection(metaclass=ABCMeta):
         sock.send(packed_header)
 
     @staticmethod
-    def send_body(sock: socket.socket, file_path: str, media_type: str, request: dict):
+    def send_body(sock: socket.socket, media_type: str, request: dict, file_path: str):
         """
         ボディを送信する
 
@@ -88,29 +88,30 @@ class TCPConnection(metaclass=ABCMeta):
         ヘッダーを受信する
 
         @param sock: ソケット
-        @return: json_size, media_type_size, payload_size
+        @return: request_size, media_type_size, payload_size
         """
         header = sock.recv(TCPConnection.HEADER_SIZE)
-        json_size_bytes, media_type_size_bytes, payload_size_bytes = struct.unpack(TCPConnection.HEADER_FORMAT, header)
-        json_size = int.from_bytes(json_size_bytes, 'big')
+        request_size_bytes, media_type_size_bytes, payload_size_bytes = struct.unpack(TCPConnection.HEADER_FORMAT,
+                                                                                      header)
+        request_size = int.from_bytes(request_size_bytes, 'big')
         media_type_size = int.from_bytes(media_type_size_bytes, 'big')
         payload_size = int.from_bytes(payload_size_bytes, 'big')
-        return json_size, media_type_size, payload_size
+        return request_size, media_type_size, payload_size
 
     @staticmethod
-    def receive_body(sock: socket.socket, json_size: int, media_type_size: int, payload_size: int) -> tuple[
+    def receive_body(sock: socket.socket, request_size: int, media_type_size: int, payload_size: int) -> tuple[
         dict, str,]:
         """
         ボディを受信する
 
         @param sock: ソケット
-        @param json_size:
+        @param request_size:
         @param media_type_size:
         @param payload_size:
         @return: request, file_name
         """
         # jsonを受信する
-        request_bytes = sock.recv(json_size)
+        request_bytes = sock.recv(request_size)
         request_string = request_bytes.decode('utf-8')
         # dictに変換する
         request = json.loads(request_string)
@@ -131,6 +132,5 @@ class TCPConnection(metaclass=ABCMeta):
                 data = sock.recv(TCPConnection.BUFFER_SIZE)
                 f.write(data)
                 payload_size -= len(data)
-            # 受信が終わったらクライアントに終了を通知する
             logging.info('File has been received!')
         return request, file_name
