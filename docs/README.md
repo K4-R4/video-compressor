@@ -10,6 +10,7 @@
 7. [References](#references)
 
 ## [Description](#description)
+動画ファイルを圧縮したり、解像度を変更したり、アスペクト比を変更したり、音声に変換したり、指定した時間範囲でGIFに変換することができる。
 
 ## [Features](#features)
 1. 圧縮
@@ -32,6 +33,7 @@ $ make client
 ```
 
 ## [Demo](#demo)
+![](/docs/demo.mp4)
 
 ## [Technical details](#technical-details)
 ###  protocol

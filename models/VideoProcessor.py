@@ -40,7 +40,7 @@ class VideoProcessor:
         probe = ffmpeg.probe(input_file, cmd="ffprobe")
         video_info = next(s for s in probe["streams"] if s["codec_type"] == "video")
         default_bitrate: int = int(video_info["bit_rate"])
-        compressed_bitrate: int = int(default_bitrate * compression_rate)
+        compressed_bitrate: int = int(default_bitrate * float(compression_rate))
         stream = ffmpeg.input(input_file).output(
             output_file, video_bitrate=compressed_bitrate
         )

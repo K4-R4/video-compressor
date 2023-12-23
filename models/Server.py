@@ -1,6 +1,7 @@
 import logging
 import os.path
 import socket
+import threading
 from concurrent.futures.thread import ThreadPoolExecutor
 from models.VideoProcessor import VideoProcessor
 from models.TCPConnection import TCPConnection
@@ -27,8 +28,7 @@ class Server(TCPConnection):
             while True:
                 client, address = self.sock.accept()
                 self.logger.info(f'Connection from {address} has been established!')
-                client.settimeout(Server.TIMEOUT)
-                self.executor.submit(Server.listen_to_client, client)
+                self.executor.submit(self.listen_to_client, client)
         except KeyboardInterrupt as e:
             self.logger.error(e, exc_info=True)
             self.sock.close()

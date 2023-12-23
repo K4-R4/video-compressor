@@ -146,6 +146,8 @@ def process_video(file_path: str, option: tk.StringVar, detail_options: dict, cl
 
         # 各オプションに対応するエントリーから値を取得し、それをリクエストの形式に合わせて辞書に格納
         if option.get() == 'Compress':
+            client.logger.info(detail_options['Compress'][0].get())
+            client.logger.info(type(detail_options['Compress'][0].get()))
             params['request']['params']['compressRate'] = detail_options['Compress'][0].get()
         elif option.get() == 'Resize':
             params['request']['params']['resolution'] = detail_options['Resize'][0].get() + 'x' + detail_options['Resize'][
