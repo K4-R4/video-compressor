@@ -1,7 +1,7 @@
 # Description: Makefile for the project
 
 # Default target
-init: venv install
+init: env install
 
 # Install requirements and ffmpeg
 install: install/requirements install/ffmpeg
@@ -15,20 +15,20 @@ install/ffmpeg:
 	brew install ffmpeg
 
 # Virtual environment
-venv: venv/init venv/activate
+env: env/init env/activate
 
 # Create virtual environment
-venv/init:
+env/init:
 	python3 -m venv venv
 
 # Activate virtual environment
-venv/activate:
-	source venv/bin/activate
+env/activate:
+	. venv/bin/activate
 
-server: venv/activate
+server: env/activate
     # Run server
 	python3 server/server.py
 
-client: venv/activate
+client: env/activate
     # Run client
 	python3 client/client.py

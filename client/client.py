@@ -19,6 +19,7 @@ class Client:
 
     def __init__(self, host: str, port: int):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.settimeout(60)
         self.host = host
         self.port = port
 

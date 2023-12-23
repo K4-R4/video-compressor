@@ -95,6 +95,8 @@ class Server:
         # ファイルを受信する
         address, port = client.getsockname()
         file_name = f'{address}_{port}.' + media_type
+        if not os.path.exists(Server.DEST_DIR):
+            os.makedirs(Server.DEST_DIR)
         file_path = os.path.join(Server.DEST_DIR, file_name)
         logging.info(f'Saving file to {file_path}')
         with open(file_path, 'wb') as f:
@@ -109,8 +111,8 @@ class Server:
     @staticmethod
     def send_header(client: socket.socket, file_path: str, media_type: str, request: dict):
         request_size = len(bytes(json.dumps(request), 'utf-8'))
-        media_type_size = len(bytes(media_type, 'utf-8'))
-        payload_size = os.path.getsize(file_path)
+        media_type_size = len(bytes(media_type, 'utf-8')) if media_type else 0
+        payload_size = os.path.getsize(file_path) if file_path else 0
         logging.info(f'json_size: {request_size}, media_type_size: {media_type_size}, payload_size: {payload_size}')
         packed_header = struct.pack(Server.HEADER_FORMAT,
                                     int.to_bytes(request_size, 16, 'big'),
@@ -126,6 +128,9 @@ class Server:
         # media_typeを送信する
         client.send(bytes(media_type, 'utf-8'))
         # ファイルを読み込んで送信する
+        if not os.path.exists(file_path):
+            logging.info(f'File: {file_path} does not exist!')
+            return
         with open(file_path, 'rb') as f:
             try:
                 # self.buffer_size分ずつファイルを読み込んで送信する
