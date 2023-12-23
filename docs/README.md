@@ -33,7 +33,7 @@ $ make client
 ```
 
 ## [Demo](#demo)
-[](docs/demo.mp4)
+![](docs/demo.mp4)
 
 ## [Technical details](#technical-details)
 ###  protocol
