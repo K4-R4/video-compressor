@@ -27,8 +27,8 @@ env/activate:
 
 server: env/activate
     # Run server
-	python3 server/server.py
+	python3 server/main.py
 
 client: env/activate
     # Run client
-	python3 client/client.py
+	python3 client/main.py
