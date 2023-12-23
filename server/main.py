@@ -10,11 +10,8 @@ def main():
     server_ip = os.getenv('SERVER_IP')
     server_port = os.getenv('SERVER_PORT')
 
-    # ログレベルを設定する
-    logging.basicConfig(level=logging.INFO)
-
     # サーバーを起動する
-    server = Server(server_ip, int(server_port))
+    server = Server(server_ip, int(server_port), logging.getLogger())
     server.run()
 
 

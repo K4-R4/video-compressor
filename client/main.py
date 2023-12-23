@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import filedialog
 import tkinter.ttk as ttk
 from models.Client import Client
+from models.WidgetLogger import WidgetLogger
 
 
 def main():
@@ -13,16 +14,9 @@ def main():
     server_ip = os.getenv('SERVER_IP')
     server_port = os.getenv('SERVER_PORT')
 
-    # ログの設定
-    logging.basicConfig(level=logging.INFO)
-
     # ウィンドウの設定
     root = tk.Tk()
     setup_layout(root)
-
-    # クライアントの起動
-    client = Client(server_ip, int(server_port))
-    client.run()
 
     # メインフレームの設定
     setting_frame = tk.Frame(root)
@@ -45,16 +39,35 @@ def main():
 
     # ボタンを作成
     button_frame = tk.Frame(root)
-    button_frame.pack(fill='x', padx=20, pady=20)
+    button_frame.pack(fill='both', padx=30)
     tk.Button(button_frame, text='Process',
-              command=lambda: process_video(get_file_path(), option, detail_option_entries, client)).pack(side='right')
+              command=lambda: process_video(get_file_path(), option, detail_option_entries, client)).pack(fill='both')
+
+    # ログ表示用のフレームを作成
+    log_frame = tk.Frame(root)
+    log_frame.pack(fill='both', padx=20, pady=20)
+    log_text = tk.Text(log_frame, state='disabled')
+    log_text.pack(expand=False, fill='both')
+    logger = setup_logging(log_text)
+
+    # クライアントの起動
+    client = Client(server_ip, int(server_port), logger)
+    client.run()
 
     root.mainloop()
 
 
 def setup_layout(root):
     root.title('Video Compressor')
-    root.geometry('600x400')
+    root.geometry('600x500')
+
+
+def setup_logging(text_widget):
+    log_handler = WidgetLogger(text_widget)
+    logger = logging.getLogger()
+    logger.addHandler(log_handler)
+    logger.setLevel(logging.INFO)
+    return logger
 
 
 def create_labelled_button(parent, text, command):
@@ -77,7 +90,7 @@ def setup_options(parent, options, option_variable):
         entries = []
         for param in params:
             tk.Label(frame, text=param).pack(side='left', padx=5)
-            entry = ttk.Entry(frame, style='TEntry')
+            entry = ttk.Entry(frame, style='TEntry', width=10)
             entry.pack(side='left', padx=5)
             entry.config(state='disabled')
             entries.append(entry)
@@ -111,41 +124,43 @@ def create_file_selector():
 
 def process_video(file_path: str, option: tk.StringVar, detail_options: dict, client: Client):
     _, file_extension = os.path.splitext(file_path)
-    # optionとoperationの対応
-    operation = {
-        'Compress': 'compress',
-        'Resize': 'resolutionChange',
-        'Change Aspect Ratio': 'aspectRatioChange',
-        'Extract Audio': 'audioExtract',
-        'Convert to GIF': 'logging'
-    }
+    try:
+        # optionとoperationの対応
+        operation = {
+            'Compress': 'compress',
+            'Resize': 'resolutionChange',
+            'Change Aspect Ratio': 'aspectRatioChange',
+            'Extract Audio': 'audioExtract',
+            'Convert to GIF': 'logging'
+        }
 
-    params = {
-        'file_name': file_path,
-        'media_type': file_extension,
-        'request': {
-            'operation': operation[option.get()],
-            'params': {
+        params = {
+            'file_name': file_path,
+            'media_type': file_extension,
+            'request': {
+                'operation': operation[option.get()],
+                'params': {
+                }
             }
         }
-    }
 
-    # 各オプションに対応するエントリーから値を取得し、それをリクエストの形式に合わせて辞書に格納
-    if option.get() == 'Compress':
-        params['request']['params']['compressRate'] = detail_options['Compress'][0].get()
-    elif option.get() == 'Resize':
-        params['request']['params']['resolution'] = detail_options['Resize'][0].get() + 'x' + detail_options['Resize'][
-            1].get()
-    elif option.get() == 'Change Aspect Ratio':
-        params['request']['params']['aspectRatio'] = detail_options['Change Aspect Ratio'][0].get() + ':' + \
-                                                     detail_options['Change Aspect Ratio'][1].get()
-    elif option.get() == 'Extract Audio':
-        pass
-    elif option.get() == 'Convert to GIF':
-        params['request']['params']['startSec'] = detail_options['Convert to GIF'][0].get()
-        params['request']['params']['endSec'] = detail_options['Convert to GIF'][1].get()
-
-    client.process_video(params)
+        # 各オプションに対応するエントリーから値を取得し、それをリクエストの形式に合わせて辞書に格納
+        if option.get() == 'Compress':
+            params['request']['params']['compressRate'] = detail_options['Compress'][0].get()
+        elif option.get() == 'Resize':
+            params['request']['params']['resolution'] = detail_options['Resize'][0].get() + 'x' + detail_options['Resize'][
+                1].get()
+        elif option.get() == 'Change Aspect Ratio':
+            params['request']['params']['aspectRatio'] = detail_options['Change Aspect Ratio'][0].get() + ':' + \
+                                                         detail_options['Change Aspect Ratio'][1].get()
+        elif option.get() == 'Extract Audio':
+            pass
+        elif option.get() == 'Convert to GIF':
+            params['request']['params']['startSec'] = detail_options['Convert to GIF'][0].get()
+            params['request']['params']['endSec'] = detail_options['Convert to GIF'][1].get()
+        client.process_video(params)
+    except Exception as e:
+        client.logger.error(e, exc_info=True)
 
 
 if __name__ == '__main__':
