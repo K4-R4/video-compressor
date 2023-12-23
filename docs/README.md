@@ -33,7 +33,9 @@ $ make client
 ```
 
 ## [Demo](#demo)
-![](/docs/demo.mp4)
+https://github.com/tkuramot/video-compressor/assets/106866329/5ad4b57d-9b31-42ad-bdfc-2999086219ef
+
+
 
 ## [Technical details](#technical-details)
 ###  protocol
