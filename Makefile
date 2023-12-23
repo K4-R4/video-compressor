@@ -4,7 +4,7 @@
 init: env install
 
 # Install requirements and ffmpeg
-install: install/requirements install/ffmpeg
+install: install/requirements install/ffmpeg install/tcl-tk
 
 # Install requirements
 install/requirements:
@@ -13,6 +13,9 @@ install/requirements:
 # Install ffmpeg
 install/ffmpeg:
 	brew install ffmpeg
+
+install/tcl-tk:
+	brew install python-tk@3.11
 
 # Virtual environment
 env: env/init env/activate

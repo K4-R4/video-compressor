@@ -24,7 +24,7 @@ class TCPConnection(metaclass=ABCMeta):
         self.port = port
 
     @abstractmethod
-    def run(self, params: dict | None):
+    def run(self):
         raise NotImplementedError
 
     @staticmethod

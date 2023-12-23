@@ -18,7 +18,7 @@ class Server(TCPConnection):
 
         self.sock.listen(Server.LISTEN_NUM)
 
-    def run(self, params: dict | None = None):
+    def run(self):
         self.accept()
 
     # クライアントの接続を待ち受ける
