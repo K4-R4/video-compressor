@@ -16,7 +16,7 @@ class Server(TCPConnection):
 
         self.sock.listen(5)
 
-    def run(self):
+    def run(self, params: dict | None = None):
         self.accept()
 
     # クライアントの接続を待ち受ける
@@ -25,7 +25,7 @@ class Server(TCPConnection):
             while True:
                 client, address = self.sock.accept()
                 logging.info(f'Connection from {address} has been established!')
-                client.settimeout(60)
+                client.settimeout(Server.TIMEOUT)
                 threading.Thread(target=Server.listen_to_client, args=(client,)).start()
         except KeyboardInterrupt as e:
             logging.error(e, exc_info=True)
@@ -63,10 +63,15 @@ class Server(TCPConnection):
 
 
 def main():
+    # 環境変数を読み込む
     load_dotenv()
     server_ip = os.getenv('SERVER_IP')
     server_port = os.getenv('SERVER_PORT')
+
+    # ログレベルを設定する
     logging.basicConfig(level=logging.INFO)
+
+    # サーバーを起動する
     server = Server(server_ip, int(server_port))
     server.run()
 

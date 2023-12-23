@@ -14,6 +14,7 @@ class TCPConnection(metaclass=ABCMeta):
     PAYLOAD_SIZE = 47
 
     BUFFER_SIZE = 1400
+    TIMEOUT = 60
 
     DEST_DIR = './dest'
 
@@ -21,6 +22,10 @@ class TCPConnection(metaclass=ABCMeta):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.host = host
         self.port = port
+
+    @abstractmethod
+    def run(self, params: dict | None):
+        raise NotImplementedError
 
     @staticmethod
     def send_header(sock: socket.socket, file_path: str, media_type: str, request: dict):

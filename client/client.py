@@ -13,10 +13,11 @@ class Client(TCPConnection):
 
     def __init__(self, host: str, port: int):
         super().__init__(host, port)
-        self.sock.settimeout(60)
+        self.sock.settimeout(Client.TIMEOUT)
 
-    def run(self, file_name: str):
+    def run(self, params: dict | None = None):
         self.sock.connect((self.host, self.port))
+        file_name = params['file_name']
         if not file_name.endswith(VALID_VIDEO_EXTENSIONS):
             logging.error(f'Invalid file extension: {file_name}')
             self.sock.close()
@@ -52,7 +53,7 @@ def main():
     if not os.path.exists(file_name):
         print(f'{sys.argv[1]} does not exist!')
         sys.exit(1)
-    client.run(file_name)
+    client.run(dict(file_name=file_name))
 
 
 if __name__ == '__main__':
