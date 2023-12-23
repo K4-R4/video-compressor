@@ -5,7 +5,7 @@ import logging
 class VideoProcessor:
     COMPRESS = "compress"
     RESOLUTION = "resolutionChange"
-    ASPECT = "aspectChange"
+    ASPECT_RATIO = "aspectRatioChange"
     AUDIO = "audioExtract"
     GIF = "gifConvert"
 
@@ -19,7 +19,7 @@ class VideoProcessor:
             VideoProcessor.change_resolution(input_file_path, output_file_path, request['params']['width'],
                                              request['params']['height'])
             return 'mp4'
-        elif request['operation'] == VideoProcessor.ASPECT:
+        elif request['operation'] == VideoProcessor.ASPECT_RATIO:
             VideoProcessor.change_aspect_ratio(input_file_path, output_file_path, request['params']['aspectRatio'])
             return 'mp4'
         elif request['operation'] == VideoProcessor.AUDIO:

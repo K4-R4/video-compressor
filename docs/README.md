@@ -52,7 +52,7 @@ Request
   "operation": "compress",
   "params": {
     // required for compress
-    "bitrate": "1000k",
+    "compressRate": "0.5",
     // required for aspectRatioChange
     "aspectRatio": "16:9",
     // required for resolutionChange 
